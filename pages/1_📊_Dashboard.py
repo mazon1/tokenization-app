@@ -14,29 +14,32 @@ df = load_data()
 st.title("📊 Dataset Dashboard")
 
 # -------------------------------
-# 🔹 SAFE COLUMN HANDLING
+# 🔹 SAFE COLUMN DETECTION
 # -------------------------------
-# Ensure Token_Count exists
-if "Token_Count" not in df.columns:
-    st.error("Token_Count column missing. Please check data_loader.")
+columns = [col.lower() for col in df.columns]
+
+# Detect Token_Count
+if "token_count" not in columns:
+    st.error(f"Token_Count column missing. Available columns: {df.columns.tolist()}")
     st.stop()
 
-# Ensure Cultural_Group exists
-if "Cultural_Group" not in df.columns:
-    st.error(f"Cultural_Group column missing. Found columns: {df.columns.tolist()}")
+# Detect Cultural_Group dynamically
+group_col = next(
+    (col for col in df.columns if col.lower() in [
+        "cultural_group", "culture", "group", "region"
+    ]),
+    None
+)
+
+if group_col is None:
+    st.error(f"No cultural group column found. Columns: {df.columns.tolist()}")
     st.stop()
 
-# -------------------------------
-# 🔹 NORMALIZE GROUP NAMES (IMPORTANT)
-# -------------------------------
-df["Cultural_Group"] = df["Cultural_Group"].astype(str).str.strip()
+# Standardize column name
+df.rename(columns={group_col: "Cultural_Group"}, inplace=True)
 
-# Optional normalization (handles case differences)
-df["Cultural_Group"] = df["Cultural_Group"].replace({
-    "african": "African",
-    "asian": "Asian",
-    "western": "Western"
-})
+# Normalize group labels
+df["Cultural_Group"] = df["Cultural_Group"].astype(str).str.strip().str.title()
 
 # -------------------------------
 # 🔹 KPI SECTION
@@ -56,16 +59,18 @@ col4.metric("Western", group_counts.get("Western", 0))
 if group_counts.nunique() == 1 and len(group_counts) >= 3:
     st.success("✅ Balanced dataset: 10,000 names per group")
 else:
-    st.warning("⚠️ Dataset imbalance detected or unexpected group labels")
+    st.warning("⚠️ Dataset imbalance detected or unexpected labels")
 
 # -------------------------------
 # 🔹 SECONDARY METRICS
 # -------------------------------
+token_col = next(col for col in df.columns if col.lower() == "token_count")
+
 col5, col6, col7 = st.columns(3)
 
-col5.metric("Avg Tokens", round(df["Token_Count"].mean(), 2))
-col6.metric("Max Tokens", df["Token_Count"].max())
-col7.metric("Std Dev", round(df["Token_Count"].std(), 2))
+col5.metric("Avg Tokens", round(df[token_col].mean(), 2))
+col6.metric("Max Tokens", df[token_col].max())
+col7.metric("Std Dev", round(df[token_col].std(), 2))
 
 # -------------------------------
 # 🔹 INSIGHT TEXT
@@ -83,7 +88,7 @@ ensuring that observed differences are due to **tokenization bias** rather than 
 st.subheader("Token Distribution by Cultural Group")
 
 fig, ax = plt.subplots()
-sns.boxplot(x="Cultural_Group", y="Token_Count", data=df, ax=ax)
+sns.boxplot(x="Cultural_Group", y=token_col, data=df, ax=ax)
 st.pyplot(fig)
 
 # -------------------------------
@@ -92,18 +97,18 @@ st.pyplot(fig)
 st.subheader("Distribution Shape (Fragmentation Spread)")
 
 fig, ax = plt.subplots()
-sns.violinplot(data=df, x="Token_Count", y="Cultural_Group", ax=ax)
+sns.violinplot(data=df, x=token_col, y="Cultural_Group", ax=ax)
 st.pyplot(fig)
 
 # -------------------------------
 # 🔹 AVERAGE TOKEN COUNT
 # -------------------------------
-avg_tokens = df.groupby("Cultural_Group")["Token_Count"].mean().reset_index()
+avg_tokens = df.groupby("Cultural_Group")[token_col].mean().reset_index()
 
 st.subheader("Average Token Count by Cultural Group")
 
 fig, ax = plt.subplots()
-sns.barplot(data=avg_tokens, x="Cultural_Group", y="Token_Count", ax=ax)
+sns.barplot(data=avg_tokens, x="Cultural_Group", y=token_col, ax=ax)
 st.pyplot(fig)
 
 # -------------------------------

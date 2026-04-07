@@ -1,12 +1,13 @@
 import streamlit as st
-from utils.data_loader import load_data
-from utils.stats import run_anova
+import scipy.stats as stats
+import pandas as pd
+from utils.data_loader import load_balanced_data
 
-df = load_data()
+st.set_page_config(layout="wide")
 
 st.title("📈 ANOVA Analysis")
 
-anova_table, eta = run_anova(df)
-
-st.dataframe(anova_table)
-st.metric("Eta Squared", round(eta, 4))
+# -------------------------------
+# 🔹 LOAD BALANCED DATA
+# -------------------------------
+df = load_balanced_data()

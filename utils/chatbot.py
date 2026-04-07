@@ -70,3 +70,23 @@ def explain_ner_result(name, predicted_name, error_type, model_name):
 
     response = model.generate_content(prompt)
     return response.text
+
+def ask_gemini(question):
+    system_prompt = """
+    You are an expert in tokenization bias in NLP systems.
+
+    You help users understand:
+    - Token fragmentation
+    - Cultural bias in names
+    - TGDI metric
+    - NER errors
+    - API cost implications
+
+    Always give clear, structured, and practical explanations.
+    """
+
+    response = model.generate_content(
+        system_prompt + "\nUser: " + question
+    )
+
+    return response.text

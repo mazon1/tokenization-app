@@ -3,10 +3,10 @@ from utils.data_loader import load_data
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+st.set_page_config(layout="wide")
+
 # Load data
 df = load_data()
-
-st.set_page_config(layout="wide")
 
 st.title("📊 Dataset Dashboard")
 

@@ -2,43 +2,43 @@ import pandas as pd
 import streamlit as st
 import tiktoken
 
+# Initialize tokenizer once
+tokenizer = tiktoken.get_encoding("cl100k_base")
+
+
+# -------------------------------
+# 🔹 RAW DATA
+# -------------------------------
 @st.cache_data
-def load_data():
+def load_raw_data():
     df = pd.read_csv("data/final_all_names_code.csv")
 
-    tokenizer = tiktoken.get_encoding("cl100k_base")
-
     # -------------------------------
-    # 🔹 CREATE CULTURAL GROUP (FIX 🔥)
+    # 🔹 CREATE CULTURAL GROUP (IMPROVED 🔥)
     # -------------------------------
-    african_countries = [
-        "Nigeria", "Ghana", "Kenya", "South Africa", "Ethiopia"
-    ]
-
-    asian_countries = [
-        "China", "India", "Japan", "South Korea", "Indonesia"
-    ]
-
-    western_countries = [
-        "United States", "Canada", "United Kingdom", "France", "Germany"
-    ]
-
     def map_group(country):
-        if country in african_countries:
+        country = str(country).lower()
+
+        if any(x in country for x in [
+            "nigeria", "ghana", "kenya", "ethiopia", "south africa"
+        ]):
             return "African"
-        elif country in asian_countries:
+
+        elif any(x in country for x in [
+            "china", "india", "japan", "korea", "indonesia"
+        ]):
             return "Asian"
-        elif country in western_countries:
+
+        elif any(x in country for x in [
+            "united states", "usa", "canada", "uk",
+            "united kingdom", "france", "germany"
+        ]):
             return "Western"
+
         else:
             return "Other"
 
     df["Cultural_Group"] = df["Country"].apply(map_group)
-
-    # -------------------------------
-    # 🔹 FILTER ONLY YOUR 3 GROUPS
-    # -------------------------------
-    df = df[df["Cultural_Group"] != "Other"]
 
     # -------------------------------
     # 🔹 COMPUTE TOKEN COUNT
@@ -47,5 +47,15 @@ def load_data():
         df["Token_Count"] = df["Name"].apply(
             lambda x: len(tokenizer.encode(str(x)))
         )
+
+    return df
+
+
+# -------------------------------
+# 🔹 BALANCED DATA
+# -------------------------------
+@st.cache_data
+def load_balanced_data():
+    df = pd.read_csv("data/final_balanced_dataset.csv")
 
     return df

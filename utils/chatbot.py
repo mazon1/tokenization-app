@@ -1,27 +1,34 @@
 import google.generativeai as genai
 import streamlit as st
 
-# Configure API
+# Configure Gemini
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
+# Use your chosen model
 model = genai.GenerativeModel("gemini-2.5-flash")
 
-def ask_gemini(question):
-    system_prompt = """
-    You are an expert in tokenization bias in NLP systems.
 
-    You help users understand:
-    - Token fragmentation
-    - Cultural bias in names
-    - TGDI metric
-    - NER errors
-    - API cost implications
+def explain_name_analysis(name, token_count, tgdi, cost, tokens):
+    prompt = f"""
+    You are an expert in NLP fairness and tokenization bias.
 
-    Always give clear, structured, and practical explanations.
+    Analyze the following name:
+
+    Name: {name}
+    Token Count: {token_count}
+    TGDI: {tgdi}
+    Cost: ${cost}
+    Token Breakdown: {tokens}
+
+    Provide a structured explanation with these sections:
+
+    1. Tokenization Insight  
+    2. Fragmentation & Bias Risk  
+    3. Cost Implication  
+    4. Cultural / Representation Impact  
+
+    Keep it concise, clear, and slightly academic.
     """
 
-    response = model.generate_content(
-        system_prompt + "\nUser: " + question
-    )
-
+    response = model.generate_content(prompt)
     return response.text

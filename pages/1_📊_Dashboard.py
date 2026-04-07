@@ -3,22 +3,43 @@ from utils.data_loader import load_data
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+# MUST be first Streamlit command
 st.set_page_config(layout="wide")
 
-# Load data
+# -------------------------------
+# 🔹 LOAD DATA
+# -------------------------------
 df = load_data()
 
 st.title("📊 Dataset Dashboard")
 
 # -------------------------------
-# 🔹 SAFE COLUMN CHECK (IMPORTANT)
+# 🔹 SAFE COLUMN HANDLING
 # -------------------------------
+# Ensure Token_Count exists
 if "Token_Count" not in df.columns:
     st.error("Token_Count column missing. Please check data_loader.")
     st.stop()
 
+# Ensure Cultural_Group exists
+if "Cultural_Group" not in df.columns:
+    st.error(f"Cultural_Group column missing. Found columns: {df.columns.tolist()}")
+    st.stop()
+
 # -------------------------------
-# 🔹 KPI SECTION (UPGRADED)
+# 🔹 NORMALIZE GROUP NAMES (IMPORTANT)
+# -------------------------------
+df["Cultural_Group"] = df["Cultural_Group"].astype(str).str.strip()
+
+# Optional normalization (handles case differences)
+df["Cultural_Group"] = df["Cultural_Group"].replace({
+    "african": "African",
+    "asian": "Asian",
+    "western": "Western"
+})
+
+# -------------------------------
+# 🔹 KPI SECTION
 # -------------------------------
 group_counts = df["Cultural_Group"].value_counts()
 
@@ -32,10 +53,10 @@ col4.metric("Western", group_counts.get("Western", 0))
 # -------------------------------
 # 🔹 DATASET BALANCE CHECK
 # -------------------------------
-if group_counts.nunique() == 1:
+if group_counts.nunique() == 1 and len(group_counts) >= 3:
     st.success("✅ Balanced dataset: 10,000 names per group")
 else:
-    st.warning("⚠️ Dataset imbalance detected")
+    st.warning("⚠️ Dataset imbalance detected or unexpected group labels")
 
 # -------------------------------
 # 🔹 SECONDARY METRICS
@@ -47,7 +68,7 @@ col6.metric("Max Tokens", df["Token_Count"].max())
 col7.metric("Std Dev", round(df["Token_Count"].std(), 2))
 
 # -------------------------------
-# 🔹 INSIGHT TEXT (IMPORTANT)
+# 🔹 INSIGHT TEXT
 # -------------------------------
 st.markdown("""
 ### 🔍 Key Insight
@@ -75,7 +96,7 @@ sns.violinplot(data=df, x="Token_Count", y="Cultural_Group", ax=ax)
 st.pyplot(fig)
 
 # -------------------------------
-# 🔹 AVERAGE TOKEN COUNT (NEW 🔥)
+# 🔹 AVERAGE TOKEN COUNT
 # -------------------------------
 avg_tokens = df.groupby("Cultural_Group")["Token_Count"].mean().reset_index()
 

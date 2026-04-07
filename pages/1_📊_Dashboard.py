@@ -66,7 +66,7 @@ col4.metric("Western", group_counts.get("Western", 0))
 # 🔹 DATASET LABEL
 # -------------------------------
 if dataset_option == "Balanced Dataset (Research)":
-    st.success("Using balanced dataset (10,000 per group)")
+    st.success("Using balanced dataset")
 else:
     st.info("Using raw dataset (unbalanced, real-world distribution)")
 

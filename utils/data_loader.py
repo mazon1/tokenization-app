@@ -8,10 +8,43 @@ def load_data():
 
     tokenizer = tiktoken.get_encoding("cl100k_base")
 
-    # Detect correct name column
-    name_col = "Name" if "Name" in df.columns else "name"
+    # -------------------------------
+    # 🔹 DEBUG (IMPORTANT)
+    # -------------------------------
+    st.write("Columns found:", df.columns.tolist())
 
-    # Compute Token_Count if missing
+    # -------------------------------
+    # 🔹 DETECT NAME COLUMN
+    # -------------------------------
+    name_col = next(
+        (col for col in df.columns if col.lower() in ["name"]),
+        None
+    )
+
+    if name_col is None:
+        st.error("No name column found")
+        st.stop()
+
+    # -------------------------------
+    # 🔹 DETECT CULTURAL GROUP COLUMN
+    # -------------------------------
+    group_col = next(
+        (col for col in df.columns if col.lower() in [
+            "cultural_group", "culture", "group", "region"
+        ]),
+        None
+    )
+
+    if group_col is None:
+        st.error(f"No cultural group column found. Columns: {df.columns.tolist()}")
+        st.stop()
+
+    # Rename to standard name
+    df.rename(columns={group_col: "Cultural_Group"}, inplace=True)
+
+    # -------------------------------
+    # 🔹 COMPUTE TOKEN COUNT
+    # -------------------------------
     if "Token_Count" not in df.columns:
         df["Token_Count"] = df[name_col].apply(
             lambda x: len(tokenizer.encode(str(x)))

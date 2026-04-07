@@ -9,44 +9,42 @@ def load_data():
     tokenizer = tiktoken.get_encoding("cl100k_base")
 
     # -------------------------------
-    # 🔹 DEBUG (IMPORTANT)
+    # 🔹 CREATE CULTURAL GROUP (FIX 🔥)
     # -------------------------------
-    st.write("Columns found:", df.columns.tolist())
+    african_countries = [
+        "Nigeria", "Ghana", "Kenya", "South Africa", "Ethiopia"
+    ]
+
+    asian_countries = [
+        "China", "India", "Japan", "South Korea", "Indonesia"
+    ]
+
+    western_countries = [
+        "United States", "Canada", "United Kingdom", "France", "Germany"
+    ]
+
+    def map_group(country):
+        if country in african_countries:
+            return "African"
+        elif country in asian_countries:
+            return "Asian"
+        elif country in western_countries:
+            return "Western"
+        else:
+            return "Other"
+
+    df["Cultural_Group"] = df["Country"].apply(map_group)
 
     # -------------------------------
-    # 🔹 DETECT NAME COLUMN
+    # 🔹 FILTER ONLY YOUR 3 GROUPS
     # -------------------------------
-    name_col = next(
-        (col for col in df.columns if col.lower() in ["name"]),
-        None
-    )
-
-    if name_col is None:
-        st.error("No name column found")
-        st.stop()
-
-    # -------------------------------
-    # 🔹 DETECT CULTURAL GROUP COLUMN
-    # -------------------------------
-    group_col = next(
-        (col for col in df.columns if col.lower() in [
-            "cultural_group", "culture", "group", "region"
-        ]),
-        None
-    )
-
-    if group_col is None:
-        st.error(f"No cultural group column found. Columns: {df.columns.tolist()}")
-        st.stop()
-
-    # Rename to standard name
-    df.rename(columns={group_col: "Cultural_Group"}, inplace=True)
+    df = df[df["Cultural_Group"] != "Other"]
 
     # -------------------------------
     # 🔹 COMPUTE TOKEN COUNT
     # -------------------------------
     if "Token_Count" not in df.columns:
-        df["Token_Count"] = df[name_col].apply(
+        df["Token_Count"] = df["Name"].apply(
             lambda x: len(tokenizer.encode(str(x)))
         )
 

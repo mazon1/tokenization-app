@@ -1,45 +1,54 @@
 import streamlit as st
-from utils.data_loader import load_data
 import seaborn as sns
 import matplotlib.pyplot as plt
+from utils.data_loader import load_raw_data, load_balanced_data
 
-# MUST be first Streamlit command
 st.set_page_config(layout="wide")
-
-# -------------------------------
-# 🔹 LOAD DATA
-# -------------------------------
-df = load_data()
 
 st.title("📊 Dataset Dashboard")
 
 # -------------------------------
-# 🔹 SAFE COLUMN DETECTION
+# 🔹 DATA SELECTION
 # -------------------------------
-columns = [col.lower() for col in df.columns]
-
-# Detect Token_Count
-if "token_count" not in columns:
-    st.error(f"Token_Count column missing. Available columns: {df.columns.tolist()}")
-    st.stop()
-
-# Detect Cultural_Group dynamically
-group_col = next(
-    (col for col in df.columns if col.lower() in [
-        "cultural_group", "culture", "group", "region"
-    ]),
-    None
+dataset_option = st.radio(
+    "Select Dataset View",
+    ["Balanced Dataset (Research)", "Raw Dataset (Original)"]
 )
 
-if group_col is None:
-    st.error(f"No cultural group column found. Columns: {df.columns.tolist()}")
-    st.stop()
+if dataset_option == "Balanced Dataset (Research)":
+    df = load_balanced_data()
+else:
+    df = load_raw_data()
 
-# Standardize column name
-df.rename(columns={group_col: "Cultural_Group"}, inplace=True)
+# -------------------------------
+# 🔹 HANDLE RAW DATA (ADD TOKEN COUNT)
+# -------------------------------
+if "Token_Count" not in df.columns:
+    import tiktoken
+    tokenizer = tiktoken.get_encoding("cl100k_base")
 
-# Normalize group labels
-df["Cultural_Group"] = df["Cultural_Group"].astype(str).str.strip().str.title()
+    df["Token_Count"] = df["Name"].apply(
+        lambda x: len(tokenizer.encode(str(x)))
+    )
+
+# -------------------------------
+# 🔹 HANDLE RAW DATA (CREATE GROUP)
+# -------------------------------
+if "Cultural_Group" not in df.columns:
+
+    def assign_group(country):
+        country = str(country).lower()
+
+        if any(x in country for x in ["nigeria", "ghana", "kenya"]):
+            return "African"
+        elif any(x in country for x in ["india", "china", "japan"]):
+            return "Asian"
+        elif any(x in country for x in ["usa", "canada", "uk"]):
+            return "Western"
+        else:
+            return "Other"
+
+    df["Cultural_Group"] = df["Country"].apply(assign_group)
 
 # -------------------------------
 # 🔹 KPI SECTION
@@ -54,71 +63,29 @@ col3.metric("Asian", group_counts.get("Asian", 0))
 col4.metric("Western", group_counts.get("Western", 0))
 
 # -------------------------------
-# 🔹 DATASET BALANCE CHECK
+# 🔹 DATASET LABEL
 # -------------------------------
-if group_counts.nunique() == 1 and len(group_counts) >= 3:
-    st.success("✅ Balanced dataset: 10,000 names per group")
+if dataset_option == "Balanced Dataset (Research)":
+    st.success("Using balanced dataset (10,000 per group)")
 else:
-    st.warning("⚠️ Dataset imbalance detected or unexpected labels")
+    st.info("Using raw dataset (unbalanced, real-world distribution)")
 
 # -------------------------------
-# 🔹 SECONDARY METRICS
-# -------------------------------
-token_col = next(col for col in df.columns if col.lower() == "token_count")
-
-col5, col6, col7 = st.columns(3)
-
-col5.metric("Avg Tokens", round(df[token_col].mean(), 2))
-col6.metric("Max Tokens", df[token_col].max())
-col7.metric("Std Dev", round(df[token_col].std(), 2))
-
-# -------------------------------
-# 🔹 INSIGHT TEXT
-# -------------------------------
-st.markdown("""
-### 🔍 Key Insight
-
-This analysis uses a culturally balanced dataset (10,000 names per group),
-ensuring that observed differences are due to **tokenization bias** rather than sampling imbalance.
-""")
-
-# -------------------------------
-# 🔹 BOXPLOT
+# 🔹 VISUALS
 # -------------------------------
 st.subheader("Token Distribution by Cultural Group")
 
 fig, ax = plt.subplots()
-sns.boxplot(x="Cultural_Group", y=token_col, data=df, ax=ax)
+sns.boxplot(x="Cultural_Group", y="Token_Count", data=df, ax=ax)
 st.pyplot(fig)
 
 # -------------------------------
-# 🔹 VIOLIN PLOT
+# 🔹 AVERAGE COMPARISON
 # -------------------------------
-st.subheader("Distribution Shape (Fragmentation Spread)")
+avg_tokens = df.groupby("Cultural_Group")["Token_Count"].mean().reset_index()
+
+st.subheader("Average Token Count")
 
 fig, ax = plt.subplots()
-sns.violinplot(data=df, x=token_col, y="Cultural_Group", ax=ax)
+sns.barplot(data=avg_tokens, x="Cultural_Group", y="Token_Count", ax=ax)
 st.pyplot(fig)
-
-# -------------------------------
-# 🔹 AVERAGE TOKEN COUNT
-# -------------------------------
-avg_tokens = df.groupby("Cultural_Group")[token_col].mean().reset_index()
-
-st.subheader("Average Token Count by Cultural Group")
-
-fig, ax = plt.subplots()
-sns.barplot(data=avg_tokens, x="Cultural_Group", y=token_col, ax=ax)
-st.pyplot(fig)
-
-# -------------------------------
-# 🔹 OPTIONAL: RAW COUNTS
-# -------------------------------
-with st.expander("📄 View Dataset Distribution"):
-    st.write(group_counts)
-
-# -------------------------------
-# 🔹 FOOTER
-# -------------------------------
-st.markdown("---")
-st.markdown("© 2026 | **Uchenna Mgbaja** | LIGS")
